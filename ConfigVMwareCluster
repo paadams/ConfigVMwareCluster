@@ -1,0 +1,36 @@
+$cluster = "ClusterName"
+$ntp1 = "ntp1.hdc.mdsol.com"
+$ntp2 = "ntp2.hdc.mdsol.com"
+
+# Configure NTP settings
+Get-cluster $cluster | Get-VMHost | Add-VmHostNtpServer -NtpServer $ntp1
+Get-cluster $cluster | Get-VMHost | Add-VmHostNtpServer -NtpServer $ntp2
+Get-cluster $cluster | Get-VMHost | Get-VMHostFirewallException | where {$_.Name -eq "NTP client"} | Set-VMHostFirewallException -Enabled:$true
+Get-cluster $cluster | Get-VMHost | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Start-VMHostService
+Get-cluster $cluster | Get-VMHost | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Set-VMHostService -Policy On
+
+# Configure Default Pathing Policy
+$defaultpsp = "VMW_PSP_RR"
+$satp = "VMW_SATP_DEFAULT_AA"
+$esxHosts = Get-Cluster "$cluster" | Get-VMHost
+
+foreach ($esx in $esxHosts) {
+  Write-Host "Setting Default PSP to $defaultpsp for SATP $satp on $esx" -ForegroundColor green
+  $esxcli = Get-EsxCli -VMHost $esx
+  $esxcli.storage.nmp.satp.set($null,$defaultpsp,$satp)
+}
+Write-Host "Done!" -ForegroundColor green
+
+
+# Configure Max Queue Depth setting - 
+$hosts = Get-Cluster "$cluster" |Get-VM;Host
+foreach($vihost in $hosts){
+  $esxcli = get-vmhost $vihost | Get-EsxCli -V2
+  
+$args1 = $esxcli.system.module.parameters.set.createArgs()
+$args1.parameterstring = "fnic_max_qdepth=32"
+$args1.module = "fnic"
+$esxcli.system.module.parameters.set.invoke($args1)
+$args2 = $esxcli.system.module.parameters.list.createargs()
+$args2.module =  "fnic"
+$esxcli.system.module.parameters.list.invoke($args2)
