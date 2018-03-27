@@ -1,3 +1,4 @@
+# Required Variables. Please change for your environment.
 $cluster = "ClusterName"
 $ntp1 = "ntp1.hdc.mdsol.com"
 $ntp2 = "ntp2.hdc.mdsol.com"
