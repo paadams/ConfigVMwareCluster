@@ -1,7 +1,7 @@
 # Required Variables. Please change for your environment.
 $cluster = "ClusterName"
-$ntp1 = "ntp1.hdc.mdsol.com"
-$ntp2 = "ntp2.hdc.mdsol.com"
+$ntp1 = "Your NTP Server01"
+$ntp2 = "Your NTP Server02"
 
 # Configure NTP settings
 Get-cluster $cluster | Get-VMHost | Add-VmHostNtpServer -NtpServer $ntp1
@@ -19,12 +19,13 @@ foreach ($esx in $esxHosts) {
   Write-Host "Setting Default PSP to $defaultpsp for SATP $satp on $esx" -ForegroundColor green
   $esxcli = Get-EsxCli -VMHost $esx
   $esxcli.storage.nmp.satp.set($null,$defaultpsp,$satp)
-}
+} # end foreach
 Write-Host "Done!" -ForegroundColor green
 
 
-# Configure Max Queue Depth setting - 
-$hosts = Get-Cluster "$cluster" |Get-VM;Host
+# Configure Max Queue Depth setting - Update with your settings.
+# This will set a Max Queue Depth of 32 and configures Cisco UCS fnic's
+$hosts = Get-Cluster "$cluster" |Get-VMHost
 foreach($vihost in $hosts){
   $esxcli = get-vmhost $vihost | Get-EsxCli -V2
   
@@ -35,3 +36,4 @@ $esxcli.system.module.parameters.set.invoke($args1)
 $args2 = $esxcli.system.module.parameters.list.createargs()
 $args2.module =  "fnic"
 $esxcli.system.module.parameters.list.invoke($args2)
+} # End foreach
